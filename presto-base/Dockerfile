@@ -3,17 +3,18 @@
 #
 
 FROM openjdk:8-slim
-LABEL maintainer="lewuathe"
+LABEL maintainer="playngoplatform"
 
-ARG VERSION
-ENV PRESTO_VERSION=${VERSION}
+#ARG VERSION
+ENV PRESTO_VERSION=0.226
 ENV PRESTO_HOME=/usr/local/presto
-ENV BASE_URL=https://repo1.maven.org/maven2
+ENV BASE_URL=https://repo1.maven.org/maven2/com/facebook/presto
 
 # install dev tools
 RUN apt-get update
 RUN apt-get install -y curl tar sudo rsync python wget python-pip python-dev build-essential
 RUN pip install jinja2
+RUN apt-get install dos2unix
 
 # java
 # RUN mkdir -p /usr/java/default && \
@@ -28,11 +29,25 @@ ENV PATH $PATH:$JAVA_HOME/bin
 
 WORKDIR /usr/local
 # ADD presto-server-${PRESTO_VERSION}.tar.gz /usr/local
-RUN wget -q ${BASE_URL}/io/prestosql/presto-server/${PRESTO_VERSION}/presto-server-${PRESTO_VERSION}.tar.gz
+RUN wget -q ${BASE_URL}/presto-server/${PRESTO_VERSION}/presto-server-${PRESTO_VERSION}.tar.gz
 RUN tar xvzf presto-server-${PRESTO_VERSION}.tar.gz -C /usr/local/
 RUN ln -s /usr/local/presto-server-${PRESTO_VERSION} $PRESTO_HOME
 
 ADD scripts ${PRESTO_HOME}/scripts
+RUN dos2unix ${PRESTO_HOME}/scripts/*
+
+COPY lib/hudi-presto-bundle-0.6.0-SNAPSHOT.jar ${PRESTO_HOME}/plugin/hive-hadoop2/hudi-presto-bundle-0.6.0-SNAPSHOT.jar
+
+#Add presto CLI jar to docker file to run presto as CLI from any of the nodes.
+# This is enough to be deployed on the coordinator as well.
+
+ADD ${BASE_URL}/presto-cli/${PRESTO_VERSION}/presto-cli-${PRESTO_VERSION}-executable.jar /usr/local/bin/presto
+
+RUN apt-get install -yf less 
+RUN apt-get clean 
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+RUN chmod +x /usr/local/bin/presto
+
 
 # Create data dir
 RUN mkdir -p $PRESTO_HOME/data

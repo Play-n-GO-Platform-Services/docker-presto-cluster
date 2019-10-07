@@ -1,10 +1,11 @@
-ARG VERSION
+#ARG VERSION
 
-FROM lewuathe/presto-base:${VERSION}
-MAINTAINER lewuathe
+FROM presto-base:latest
 
-COPY etc /usr/local/presto/etc
+ADD etc /usr/local/presto/etc
 EXPOSE 8081
+RUN dos2unix ${PRESTO_HOME}/etc/*
+RUN dos2unix ${PRESTO_HOME}/etc/catalog/*
 
 WORKDIR /usr/local/presto
 ENTRYPOINT [ "./scripts/presto.sh" ]
